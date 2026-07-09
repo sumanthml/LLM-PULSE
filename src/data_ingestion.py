@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Automatic Path Injector
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import requests
 import feedparser
 from datetime import datetime

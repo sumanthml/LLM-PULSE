@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Automatic Path Injector
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from transformers import pipeline
 from src.utils.logger import setup_custom_logger
 from src.utils.summarizer import generate_executive_brief
