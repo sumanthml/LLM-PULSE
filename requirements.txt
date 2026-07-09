@@ -1,16 +1,16 @@
-# Global repository index flags
+# Global repository index flags for CPU-safe PyTorch binary mirrors
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Data Ingestion & Engineering (Relaxed constraints for wheel matching)
+# Data Ingestion & Strict Contract Validation
 requests>=2.31.0
 feedparser>=6.0.10
-pandas>=2.1.0
-pydantic>=2.7.0
+pandas>=2.1.0,<2.3.0
+pydantic>=2.7.0,<3.0.0
 
-# Machine Learning & NLP Inference
-transformers>=4.40.0
-torch==2.3.1
+# Machine Learning, Tokenization & NLP Inference 
+transformers>=4.42.0,<5.0.0
+torch==2.3.1+cpu
 huggingface_hub>=0.23.0
 
-# Presentation Dashboard UI
+# Presentation Analytics Interface UI
 streamlit>=1.35.0
