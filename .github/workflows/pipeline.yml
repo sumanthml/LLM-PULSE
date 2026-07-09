@@ -2,9 +2,8 @@ name: 24/7 LLM-Pulse Ingestion & Inference Pipeline
 
 on:
   schedule:
-    # Triggers an automated workflow run every 6 hours
     - cron: '0 */6 * * *'
-  workflow_dispatch: # Permits manual run execution clicks on the GitHub interface
+  workflow_dispatch: 
 
 jobs:
   run-pipeline:
@@ -26,7 +25,7 @@ jobs:
 
       - name: Execute Test Automation Suites (CI/CD Quality Gate)
         run: |
-          pytest tests/ -v
+          python -m pytest tests/ -v
 
       - name: Execute ML Pipeline Engine (Inference Core)
         env:

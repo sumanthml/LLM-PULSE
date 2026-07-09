@@ -11,7 +11,6 @@ st.markdown("---")
 
 @st.cache_data(ttl=300)
 def fetch_telemetry_lake():
-    """Fetches and transforms records directly from the versioned data lake."""
     try:
         df = pd.read_csv(DATA_URL)
         if not df.empty and "timestamp" in df.columns:
@@ -23,25 +22,18 @@ def fetch_telemetry_lake():
 
 df = fetch_telemetry_lake()
 
-# Diagnostic Sidebar Filters Panel Interface
 st.sidebar.header("🎯 Pipeline Diagnostics & Filters")
-st.sidebar.markdown("Filter records and adjust pipeline confidence limits in real time.")
 
 if not df.empty:
-    # 1. Multi-Select Source Filter
     all_sources = df["source"].unique().tolist()
     selected_sources = st.sidebar.multiselect("Active Network Channels", all_sources, default=all_sources)
-    
-    # 2. Confidence Score Boundary Slider
     confidence_cutoff = st.sidebar.slider("Minimum Model Certainty Threshold", 0.0, 1.0, 0.35, 0.05)
     
-    # Apply filtering parameters dynamically
     mask = (df["source"].isin(selected_sources)) & (df["sentiment_score"] >= confidence_cutoff)
     filtered_df = df[mask]
 else:
     filtered_df = df
 
-# Generate Corporate Workspace Terminal Tab Views
 tab1, tab2, tab3 = st.tabs(["📈 Executive Overview", "🔬 Volatility & Trend Tracking", "🔍 Semantic Vector Space Log Explorer"])
 
 with tab1:
@@ -82,7 +74,6 @@ with tab3:
     if filtered_df.empty:
         st.info("No records match your selected filter criteria.")
     else:
-        # Conceptual Semantic Vector Query Search Input
         user_query = st.text_input("🔍 Contextual Semantic Search (e.g., enter 'error', 'amazing', or 'limit'):")
         display_df = filtered_df.copy().sort_values(by="timestamp", ascending=False)
         
@@ -90,7 +81,6 @@ with tab3:
             from src.utils.vector_ops import compute_lightweight_token_hash
             query_vector = compute_lightweight_token_hash(user_query)
             
-            # Simple Cosine Vector distance score calculation loop helper
             def evaluate_vector_similarity(row_vec_str):
                 try:
                     if pd.isna(row_vec_str):
@@ -100,11 +90,9 @@ with tab3:
                 except Exception:
                     return 0.0
             
-            # Sort data frame rows by contextual similarity scores
             display_df["Similarity_Score"] = display_df["semantic_vector"].apply(evaluate_vector_similarity)
             display_df = display_df.sort_values(by="Similarity_Score", ascending=False)
         
         output_cols = ["timestamp", "source", "target_entity", "sentiment_label", "sentiment_score", "executive_summary"]
         available_output = [col for col in output_cols if col in display_df.columns]
-        
         st.dataframe(display_df[available_output], use_container_width=True)

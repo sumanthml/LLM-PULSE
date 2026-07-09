@@ -7,9 +7,6 @@ logger = setup_custom_logger("AdvancedNLPEngine")
 
 class ProductionNLPEngine:
     def __init__(self):
-        """
-        Initializes CPU-quantized NLP models from the Hugging Face hub.
-        """
         logger.info("Loading CPU-Optimized Distilled RoBERTa Sentiment Architecture...")
         self.sentiment_pipe = pipeline(
             "sentiment-analysis",
@@ -25,13 +22,7 @@ class ProductionNLPEngine:
         )
         
         self.candidate_brands = ["OpenAI", "Anthropic", "Google Gemini", "Meta Llama"]
-        
-        # Performance optimization pre-screen keyword tokens
-        self.token_filter_keywords = [
-            "openai", "gpt", "chatgpt", "sam altman", 
-            "anthropic", "claude", "sonnet", "opus", 
-            "gemini", "deepmind", "llama", "open-source llm", "meta ai"
-        ]
+        self.token_filter_keywords = ["openai", "gpt", "chatgpt", "sam altman", "anthropic", "claude", "sonnet", "opus", "gemini", "deepmind", "llama", "open-source llm", "meta ai"]
         
         self.sentiment_map = {
             "negative": "Negative",
@@ -40,14 +31,9 @@ class ProductionNLPEngine:
         }
 
     def process_linguistic_inference(self, records: list) -> list:
-        """
-        Executes dual-stage transformer pipeline passes across text fields.
-        Deductions attach summaries and dense conceptual hash vector structures.
-        """
         if not records:
             return []
             
-        # Optimization: Pre-screen data before applying heavy Deep Learning vectors
         pre_filtered_records = []
         for r in records:
             text_lower = r["raw_text"].lower()
@@ -63,11 +49,7 @@ class ProductionNLPEngine:
         
         try:
             logger.info("Executing Stage 1: Zero-Shot Entity Classification...")
-            entity_outputs = self.zero_shot_pipe(
-                texts, 
-                candidate_labels=self.candidate_brands, 
-                hypothesis_template="This text discusses {}"
-            )
+            entity_outputs = self.zero_shot_pipe(texts, candidate_labels=self.candidate_brands, hypothesis_template="This text discusses {}")
             
             logger.info("Executing Stage 2: Transformer Batch Sentiment Classification...")
             sentiment_outputs = self.sentiment_pipe(texts, truncation=True, max_length=256)
@@ -77,7 +59,6 @@ class ProductionNLPEngine:
                 ent_res = entity_outputs[idx]
                 sent_res = sentiment_outputs[idx]
                 
-                # Quality Control: Filter out records with low label certainty scores
                 top_score = ent_res["scores"][0]
                 if top_score >= 0.35:
                     record["target_entity"] = ent_res["labels"][0]
@@ -85,7 +66,7 @@ class ProductionNLPEngine:
                     record["sentiment_label"] = self.sentiment_map.get(raw_label, "Neutral")
                     record["sentiment_score"] = round(float(sent_res["score"]), 4)
                     
-                    # --- COMPONENT EXTENSION UPGRADES ---
+                    # Core Feature Enrichment Connections
                     record["executive_summary"] = generate_executive_brief(record["raw_text"], record["target_entity"])
                     record["semantic_vector"] = str(compute_lightweight_token_hash(record["raw_text"]))
                     
