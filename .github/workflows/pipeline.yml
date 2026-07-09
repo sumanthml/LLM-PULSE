@@ -25,6 +25,7 @@ jobs:
 
       - name: Execute Test Automation Suites (CI/CD Quality Gate)
         run: |
+          pip install pytest  # Double-force installation to guarantee it's in the environment path
           python -m pytest tests/ -v
 
       - name: Execute ML Pipeline Engine (Inference Core)
