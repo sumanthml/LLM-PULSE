@@ -1,82 +1,103 @@
 import requests
+import feedparser
 from datetime import datetime
 from src.utils.logger import setup_custom_logger
 from src.utils.preprocessor import sanitize_text
 from src.utils.validator import enforce_schema_quality
 
-logger = setup_custom_logger("DataIngestionEngine")
+logger = setup_custom_logger("MultiSourceIngestionEngine")
 
-TARGET_ENTITIES = {
-    "openai": ["openai", "gpt-4", "chatgpt", "gpt-4o", "sam altman"],
-    "anthropic": ["anthropic", "claude", "sonnet", "opus"],
-    "google": ["google gemini", "gemini", "deepmind"],
-    "meta": ["llama", "llama3", "open-source llm"]
+# 4 Core News Aggregator Streams
+RSS_FEEDS = {
+    "TechCrunch AI": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "VentureBeat AI": "https://venturebeat.com/category/ai/feed/",
+    "AWS Machine Learning": "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "Wired AI": "https://www.wired.com/category/science/ai/feed/"
 }
 
-def fetch_hn_top_stories():
-    """Queries the open Hacker News API endpoint to extract current active entries."""
-    logger.info("Initializing baseline ingestion stream retrieval from Hacker News API...")
+def fetch_hacker_news_stream():
+    """Source 1: Queries Hacker News REST API for active trending items."""
+    logger.info("Harvesting from Source 1: Hacker News API...")
     try:
-        top_ids_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
-        response = requests.get(top_ids_url, timeout=10)
-        response.raise_for_status()
-        story_ids = response.json()[:100]
-        
-        verified_stories = []
-        for story_id in story_ids:
+        url = "https://hacker-news.firebaseio.com/v0/topstories.json"
+        response = requests.get(url, timeout=10)
+        story_ids = response.json()[:40]
+        records = []
+        for s_id in story_ids:
             try:
-                story_url = f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json"
-                story_data = requests.get(story_url, timeout=5).json()
-                
-                if story_data and "title" in story_data:
-                    # Clean the incoming text using our modular preprocessor utility
-                    cleaned_title = sanitize_text(story_data["title"])
-                    
-                    raw_payload = {
-                        "id": f"hn_{story_id}",
-                        "timestamp": datetime.fromtimestamp(story_data.get("time", datetime.now().timestamp())).strftime('%Y-%m-%d %H:%M:%S'),
+                s_url = f"https://hacker-news.firebaseio.com/v0/item/{s_id}.json"
+                data = requests.get(s_url, timeout=5).json()
+                if data and "title" in data:
+                    records.append({
+                        "id": f"hn_{s_id}",
+                        "timestamp": datetime.fromtimestamp(data.get("time", datetime.now().timestamp())).strftime('%Y-%m-%d %H:%M:%S'),
                         "source": "HackerNews",
-                        "raw_text": cleaned_title
-                    }
-                    
-                    # Validate schema integrity using Pydantic via our validator utility
-                    validated_record = enforce_schema_quality(raw_payload)
-                    if validated_record:
-                        # Convert Pydantic object back into a standard dictionary for downstream processing
-                        verified_stories.append(validated_record.model_dump())
-                        
-            except Exception as item_err:
-                logger.debug(f"Skipping transient anomaly on story item ID {story_id}: {item_err}")
+                        "raw_text": data["title"]
+                    })
+            except Exception:
                 continue
-                
-        logger.info(f"Ingestion extraction sequence finalized. Gathered {len(verified_stories)} safe database frames.")
-        return verified_stories
-        
-    except Exception as network_err:
-        logger.error(f"Critical System Interruption: Failed to bridge Hacker News REST session: {network_err}")
+        return records
+    except Exception as e:
+        logger.error(f"HN Stream failure: {e}")
         return []
 
-def extract_target_entities(text: str) -> str:
-    """Applies categorical keyword matching rules against the text parameter."""
-    text_lower = text.lower()
-    for entity, keywords in TARGET_ENTITIES.items():
-        if any(keyword in text_lower for keyword in keywords):
-            return entity.capitalize()
-    return "Generic Tech"
+def fetch_rss_streams():
+    """Sources 2, 3, 4, 5: Synthesizes high-volume syndication feeds."""
+    logger.info("Harvesting from Sources 2-5: Enterprise RSS Networks...")
+    records = []
+    for provider, url in RSS_FEEDS.items():
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:20]:
+                if "title" in entry:
+                    clean_id = entry.get("id", entry.get("link", entry.title))
+                    records.append({
+                        "id": f"rss_{hash(clean_id)}",
+                        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        "source": provider,
+                        "raw_text": entry.title
+                    })
+        except Exception as e:
+            logger.warning(f"Skipping RSS stream {provider}: {e}")
+    return records
 
-def process_pipeline_ingestion():
-    """Main ingestion orchestration node."""
-    raw_stories = fetch_hn_top_stories()
+def fetch_reddit_json_fallback():
+    """Source 6: Headless raw JSON stream extraction bypassing developer API blocks."""
+    logger.info("Harvesting from Source 6: Headless Reddit JSON Stream (/r/MachineLearning)...")
+    try:
+        url = "https://www.reddit.com/r/MachineLearning/new.json"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        children = response.json().get("data", {}).get("children", [])
+        
+        records = []
+        for post in children[:30]:
+            data = post.get("data", {})
+            if "title" in data:
+                records.append({
+                    "id": f"red_{data.get('id')}",
+                    "timestamp": datetime.fromtimestamp(data.get("created_utc", datetime.now().timestamp())).strftime('%Y-%m-%d %H:%M:%S'),
+                    "source": "Reddit/r/MachineLearning",
+                    "raw_text": data["title"]
+                })
+        return records
+    except Exception as e:
+        logger.warning(f"Reddit headless stream bypassed due to strict cloud network limits: {e}")
+        return []
+
+def gather_all_validated_data():
+    """Synthesizes and validates all active network ingestion frames."""
+    raw_payload = fetch_hacker_news_stream() + fetch_rss_streams() + fetch_reddit_json_fallback()
+    logger.info(f"Aggregated {len(raw_payload)} raw text metrics across 6 ingestion channels.")
     
-    filtered_records = []
-    for story in raw_stories:
-        entity = extract_target_entities(story["raw_text"])
-        if entity != "Generic Tech":
-            story["target_entity"] = entity
-            filtered_records.append(story)
-            
-    logger.info(f"Filtering pass executed. Isolated {len(filtered_records)} targeted GenAI telemetry data tracks.")
-    return filtered_records
+    clean_records = []
+    for record in raw_payload:
+        record["raw_text"] = sanitize_text(record["raw_text"])
+        validated = enforce_schema_quality(record)
+        if validated:
+            clean_records.append(validated.model_dump())
+    return clean_records
 
 if __name__ == "__main__":
-    process_pipeline_ingestion()
+    gather_all_validated_data()

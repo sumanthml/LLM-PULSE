@@ -1,33 +1,31 @@
-from data_ingestion import process_pipeline_ingestion
-from inference import SentimentEngine
+from data_ingestion import gather_all_validated_data
+from nlp_engine import ProductionNLPEngine
 from data_storage import DataLakeManager
 from src.utils.logger import setup_custom_logger
 
 logger = setup_custom_logger("MasterOrchestrator")
 
 def run_pipeline():
-    """Master orchestration execution loop."""
     logger.info("="*60)
-    logger.info("STARTING RUNTIME CYCLE: LLM-PULSE AUTOMATED INFRASTRUCTURE")
+    logger.info("STARTING RUNTIME: MULTI-SOURCE NLP PIPELINE")
     logger.info("="*60)
     
-    # Stage 1: Data Ingestion & Rule-based Targeting
-    raw_target_records = process_pipeline_ingestion()
-    if not raw_target_records:
-        logger.warning("Pipeline Execution Halted: No fresh target ecosystem records harvested.")
-        logger.info("="*60)
+    # 1. Multi-Source Ingestion & Sanitization
+    raw_clean_records = gather_all_validated_data()
+    if not raw_clean_records:
+        logger.warning("Pipeline execution halted: Empty ingestion array.")
         return
         
-    # Stage 2: Machine Learning Sentiment Analysis Inference
-    ml_engine = SentimentEngine()
-    enriched_records = ml_engine.analyze_batch(raw_target_records)
+    # 2. Deep Learning Zero-Shot Classification & Sentiment Extraction
+    nlp_engine = ProductionNLPEngine()
+    processed_payload = nlp_engine.process_linguistic_inference(raw_clean_records)
     
-    # Stage 3: Target Data Lake Persistence & Remote Synchronization
-    storage_manager = DataLakeManager()
-    storage_manager.append_and_sync(enriched_records)
+    # 3. Synchronize Records with Versioned Storage
+    storage = DataLakeManager()
+    storage.append_and_sync(processed_payload)
     
     logger.info("="*60)
-    logger.info("RUNTIME CYCLE SUCCESSFUL: All pipeline stages completed.")
+    logger.info("CYCLE COMPLETE: 0-SHOT ENTITY EXTRACTION RESOLVED")
     logger.info("="*60)
 
 if __name__ == "__main__":
