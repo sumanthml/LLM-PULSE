@@ -1,16 +1,16 @@
 # Global repository index flags
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Data Ingestion & Engineering
-requests==2.32.3
-feedparser==6.0.11
-pandas==2.2.2
-pydantic==2.7.4
+# Data Ingestion & Engineering (Relaxed constraints for wheel matching)
+requests>=2.31.0
+feedparser>=6.0.10
+pandas>=2.1.0
+pydantic>=2.7.0
 
 # Machine Learning & NLP Inference
-transformers==4.42.3
+transformers>=4.40.0
 torch==2.3.1
-huggingface_hub==0.23.4
+huggingface_hub>=0.23.0
 
 # Presentation Dashboard UI
-streamlit==1.36.0
+streamlit>=1.35.0
