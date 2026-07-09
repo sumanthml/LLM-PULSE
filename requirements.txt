@@ -1,15 +1,17 @@
 # Global repository index flags for CPU-safe PyTorch binary mirrors
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Data Ingestion & Strict Contract Validation
+# Data Ingestion, Math, & Strict Contract Validation
 requests>=2.31.0
 feedparser>=6.0.10
 pandas>=2.1.0,<2.3.0
 pydantic>=2.7.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+pytest>=8.0.0
 
-# Machine Learning, Tokenization & NLP Inference 
+# Machine Learning, Embeddings, & NLP Inference (Upgraded for CVE-2025-32434 patches)
 transformers>=4.42.0,<5.0.0
-torch==2.3.1+cpu
+torch>=2.6.0
 huggingface_hub>=0.23.0
 
 # Presentation Analytics Interface UI
