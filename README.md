@@ -1788,7 +1788,6 @@ Users View Analytics
 - Documentation
 
 ---
-````markdown
 ---
 
 # 📚 API Overview
