@@ -1,6 +1,16 @@
 import streamlit as st
 import pandas as pd
 import ast
+import sys
+import os
+
+# ==========================================
+# SYSTEM PATH INJECTOR (Fixes Streamlit Cloud Paths)
+# ==========================================
+# Forces the runtime container to look at the repository root folder for 'src'
+ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if ROOT_PATH not in sys.path:
+    sys.path.append(ROOT_PATH)
 
 DATA_URL = "https://huggingface.co/datasets/sunny1820f/llm-pulse-data/raw/main/llm_pulse_telemetry.csv"
 
@@ -43,7 +53,10 @@ with tab1:
         kpi1, kpi2, kpi3 = st.columns(3)
         kpi1.metric("Ingested Records Tracked", len(filtered_df))
         kpi2.metric("Active Streams Detected", filtered_df["source"].nunique())
-        kpi3.metric("Leading Mindshare Model", filtered_df["target_entity"].value_counts().index[0])
+        if not filtered_df["target_entity"].empty:
+            kpi3.metric("Leading Mindshare Model", filtered_df["target_entity"].value_counts().index[0])
+        else:
+            kpi3.metric("Leading Mindshare Model", "None")
         
         st.markdown("---")
         c1, c2 = st.columns(2)
