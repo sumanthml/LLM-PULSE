@@ -1342,8 +1342,6 @@ Benefits
 - Component reusability
 
 ---
-
-````markdown
 ---
 
 # 🚀 CI/CD Pipeline
